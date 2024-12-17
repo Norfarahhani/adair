@@ -198,3 +198,71 @@ require_once ASTRA_THEME_DIR . 'inc/core/markup/class-astra-markup.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-filters.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-hooks.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-functions.php';
+
+function display_acf_submission_form() {
+    acf_form(array(
+        'post_id' => 'new_post', // Creates a new post
+        'new_post' => array(
+            'post_type'   => 'post', // Default post type
+            'post_status' => 'publish', // Publish the post
+			'post_author' => 0,
+        ),
+        'field_groups' => array('group_676180ce7b94a'), // Replace with your Field Group ID
+        'submit_value' => 'Request',
+        'updated_message' => 'Request submitted successfully!',
+    ));
+}
+add_shortcode('acf_submission_form', 'display_acf_submission_form');
+
+
+function display_acf_data_table() {
+    ob_start(); // Start output buffering
+    ?>
+    <table border="1" cellspacing="0" cellpadding="10" width="100%">
+        <thead>
+            <tr>
+                <th>Date and Time</th>
+                <th>Company Name</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+            // Query to fetch posts with the ACF fields
+            $args = array(
+                'post_type'      => 'post', // Replace with your custom post type if needed
+                'posts_per_page' => -1,     // Show all posts
+            );
+
+            $query = new WP_Query($args);
+
+            if ($query->have_posts()) :
+                while ($query->have_posts()) : $query->the_post();
+
+                    // Fetch ACF field values
+                    $date_time    = get_field('date_and_time');
+                    $company_name = get_field('company_name');
+                    $location     = get_field('location');
+            ?>
+            <tr>
+                <td><?php echo esc_html($date_time); ?></td>
+                <td><?php echo esc_html($company_name); ?></td>
+                <td><?php echo esc_html($location); ?></td>
+            </tr>
+            <?php
+                endwhile;
+                wp_reset_postdata(); // Reset post data
+            else :
+            ?>
+            <tr>
+                <td colspan="3">No records found.</td>
+            </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+    <?php
+    return ob_get_clean(); // Return the buffered output
+}
+add_shortcode('acf_data_table', 'display_acf_data_table');
+
+
