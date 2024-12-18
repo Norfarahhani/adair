@@ -199,6 +199,7 @@ require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-filters.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-hooks.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-functions.php';
 
+// Ensure ACF form head is loaded on pages where this shortcode is used
 function conditionally_load_acf_form_head() {
     if (is_page() || is_single()) { // Load on specific pages or posts
         global $post;
@@ -209,7 +210,6 @@ function conditionally_load_acf_form_head() {
 }
 add_action('wp', 'conditionally_load_acf_form_head');
 
-// Function to display the ACF form
 function display_acf_submission_form() {
     if (function_exists('acf_form')) {
         acf_form(array(
@@ -217,7 +217,7 @@ function display_acf_submission_form() {
             'new_post' => array(
                 'post_type'   => 'post', // Default post type
                 'post_status' => 'publish', // Publish the post
-                'post_author' => 0, 
+                'post_author' => 0, // No specific author
             ),
             'field_groups' => array('group_676180ce7b94a'), // Replace with your Field Group ID
             'submit_value' => 'Request',
@@ -230,55 +230,84 @@ function display_acf_submission_form() {
 add_shortcode('acf_submission_form', 'display_acf_submission_form');
 
 
-
 function display_acf_data_table() {
-    ob_start(); 
+    // Handle delete action
+    if (isset($_GET['delete_meeting']) && is_numeric($_GET['delete_meeting'])) {
+        $post_id = intval($_GET['delete_meeting']);
+        $post = get_post($post_id);
+
+        // Check if the post exists before attempting deletion
+        if ($post) {
+            wp_delete_post($post_id, true); // Delete post permanently
+            echo "<p style='color: green;'>Meeting deleted successfully!</p>";
+        } else {
+            echo "<p style='color: red;'>Unable to delete the meeting. It might not exist.</p>";
+        }
+    }
+
+    ob_start(); // Start output buffering
     ?>
-    <table border="1" cellspacing="0" cellpadding="10" width="100%">
+    <table border="1" cellspacing="0" cellpadding="10" width="100%" style="border-radius: 8px; overflow: hidden; border-collapse: collapse; color: white;">
         <thead>
-            <tr>
+            <tr style="background-color: #0073e6;">
                 <th>Date and Time</th>
                 <th>Company Name</th>
                 <th>Location</th>
+                <th>Action</th> <!-- Delete Column -->
             </tr>
         </thead>
         <tbody>
             <?php
-            
+            // Query to fetch all posts with the ACF fields
             $args = array(
-                'post_type'      => 'post', 
-                'posts_per_page' => -1,     
+                'post_type'      => 'post',
+                'posts_per_page' => -1, // Show all posts
             );
 
             $query = new WP_Query($args);
 
             if ($query->have_posts()) :
                 while ($query->have_posts()) : $query->the_post();
-
-                    
+                    // Fetch ACF field values
                     $date_time    = get_field('date_and_time');
                     $company_name = get_field('company_name');
                     $location     = get_field('location');
+                    $post_id      = get_the_ID();
+
+                    // Only display rows with complete data
+                    if (!empty($date_time) && !empty($company_name) && !empty($location)) :
             ?>
-            <tr>
+            <tr style="background-color: #333; color: #fff;">
                 <td><?php echo esc_html($date_time); ?></td>
                 <td><?php echo esc_html($company_name); ?></td>
                 <td><?php echo esc_html($location); ?></td>
+                <td>
+                    <a href="<?php echo esc_url(add_query_arg('delete_meeting', $post_id)); ?>" 
+                       style="color: red; text-decoration: none;"
+                       onclick="return confirm('Are you sure you want to delete this meeting?');">
+                        Delete
+                    </a>
+                </td>
             </tr>
             <?php
+                    endif; // End check for empty fields
                 endwhile;
-                wp_reset_postdata(); 
+                wp_reset_postdata();
             else :
             ?>
             <tr>
-                <td colspan="3">No records found.</td>
+                <td colspan="4" style="text-align: center; color: red;">No records found.</td>
             </tr>
             <?php endif; ?>
         </tbody>
     </table>
     <?php
-    return ob_get_clean(); 
+    return ob_get_clean(); // Return the buffered output
 }
 add_shortcode('acf_data_table', 'display_acf_data_table');
+
+
+
+
 
 
