@@ -199,24 +199,40 @@ require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-filters.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-hooks.php';
 require_once ASTRA_THEME_DIR . 'inc/core/deprecated/deprecated-functions.php';
 
+function conditionally_load_acf_form_head() {
+    if (is_page() || is_single()) { // Load on specific pages or posts
+        global $post;
+        if (has_shortcode($post->post_content, 'acf_submission_form')) {
+            acf_form_head();
+        }
+    }
+}
+add_action('wp', 'conditionally_load_acf_form_head');
+
+// Function to display the ACF form
 function display_acf_submission_form() {
-    acf_form(array(
-        'post_id' => 'new_post', // Creates a new post
-        'new_post' => array(
-            'post_type'   => 'post', // Default post type
-            'post_status' => 'publish', // Publish the post
-			'post_author' => 0,
-        ),
-        'field_groups' => array('group_676180ce7b94a'), // Replace with your Field Group ID
-        'submit_value' => 'Request',
-        'updated_message' => 'Request submitted successfully!',
-    ));
+    if (function_exists('acf_form')) {
+        acf_form(array(
+            'post_id' => 'new_post', // Creates a new post
+            'new_post' => array(
+                'post_type'   => 'post', // Default post type
+                'post_status' => 'publish', // Publish the post
+                'post_author' => 0, 
+            ),
+            'field_groups' => array('group_676180ce7b94a'), // Replace with your Field Group ID
+            'submit_value' => 'Request',
+            'updated_message' => 'Request submitted successfully!',
+        ));
+    } else {
+        echo "ACF plugin is not active or installed.";
+    }
 }
 add_shortcode('acf_submission_form', 'display_acf_submission_form');
 
 
+
 function display_acf_data_table() {
-    ob_start(); // Start output buffering
+    ob_start(); 
     ?>
     <table border="1" cellspacing="0" cellpadding="10" width="100%">
         <thead>
@@ -228,10 +244,10 @@ function display_acf_data_table() {
         </thead>
         <tbody>
             <?php
-            // Query to fetch posts with the ACF fields
+            
             $args = array(
-                'post_type'      => 'post', // Replace with your custom post type if needed
-                'posts_per_page' => -1,     // Show all posts
+                'post_type'      => 'post', 
+                'posts_per_page' => -1,     
             );
 
             $query = new WP_Query($args);
@@ -239,7 +255,7 @@ function display_acf_data_table() {
             if ($query->have_posts()) :
                 while ($query->have_posts()) : $query->the_post();
 
-                    // Fetch ACF field values
+                    
                     $date_time    = get_field('date_and_time');
                     $company_name = get_field('company_name');
                     $location     = get_field('location');
@@ -251,7 +267,7 @@ function display_acf_data_table() {
             </tr>
             <?php
                 endwhile;
-                wp_reset_postdata(); // Reset post data
+                wp_reset_postdata(); 
             else :
             ?>
             <tr>
@@ -261,7 +277,7 @@ function display_acf_data_table() {
         </tbody>
     </table>
     <?php
-    return ob_get_clean(); // Return the buffered output
+    return ob_get_clean(); 
 }
 add_shortcode('acf_data_table', 'display_acf_data_table');
 
